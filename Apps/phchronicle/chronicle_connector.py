@@ -220,6 +220,7 @@ class ChronicleConnector(BaseConnector):
         """
         # Create a URL to connect to Chronicle
         url = f"{self._base_url}{endpoint}"
+        action_identifier = self.get_action_identifier()
 
         self.debug_print("Making a REST call with provided request parameters")
         self.debug_print(f"Request URL: {url}")
@@ -250,8 +251,10 @@ class ChronicleConnector(BaseConnector):
 
             if response[0].status == 429:
                 # Retrying REST call in case of RESOURCE_EXHAUSTED Error
-                self.save_progress(f"Received RESOURCE_EXHAUSTED (Status code: 429) Error. Retrying API call after {self._wait_timeout_period} seconds")
-                self.debug_print(f"Received RESOURCE_EXHAUSTED (Status code: 429) Error. Retrying API call after {self._wait_timeout_period} seconds")
+                self.save_progress(f"Received RESOURCE_EXHAUSTED (Status code: 429) Error for the {action_identifier} action.")
+                self.debug_print(f"Received RESOURCE_EXHAUSTED (Status code: 429) Error for the {action_identifier} action.")
+                self.save_progress(f"Retrying API call after {self._wait_timeout_period} seconds")
+                self.debug_print(f"Retrying API call after {self._wait_timeout_period} seconds")
 
                 # add time sleep
                 time.sleep(self._wait_timeout_period)
@@ -1044,8 +1047,13 @@ class ChronicleConnector(BaseConnector):
 
         fixed_endpoint = endpoint
 
+        action_identifier = self.get_action_identifier()
+        index = 1
+
         while True:
             endpoint = f"{fixed_endpoint}&end_time={end_time}"
+
+            self.debug_print(f"Making {index} REST call for the {action_identifier} action")
 
             # Make REST call
             ret_val, response = self._make_rest_call(action_result, client, endpoint)
@@ -1077,6 +1085,7 @@ class ChronicleConnector(BaseConnector):
 
             # Mark first as False
             first = False
+            index += 1
 
         return phantom.APP_SUCCESS, results, uri
 
@@ -1646,8 +1655,14 @@ class ChronicleConnector(BaseConnector):
         fixed_endpoint = endpoint
         page_token = ''
         results = list()
+
+        action_identifier = self.get_action_identifier()
+        index = 1
+
         while True:
             endpoint = f"{fixed_endpoint}&pageToken={page_token}"
+
+            self.debug_print(f"Making {index} REST call for the {action_identifier} action")
 
             # Make REST call
             ret_val, response = self._make_rest_call(action_result, client, endpoint)
@@ -1666,6 +1681,7 @@ class ChronicleConnector(BaseConnector):
                 page_token = response['nextPageToken']
             else:
                 break
+            index += 1
 
         return phantom.APP_SUCCESS, results
 

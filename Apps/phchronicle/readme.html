@@ -241,7 +241,7 @@
               <li>If the user doesn’t provide any of the time-related action parameters, the action will perform a search for the last three days.</li>
               <li>If the user provides [Time Range] and other time-related action parameters, the priority will be given to the [Time Range] action parameter and the search will be performed according to its given value.</li>
               <li>If the Alert Type is selected to 'All' then, based on the selected type, the limit parameter will result in fetching those many (or less if not that many asset alerts present) asset alerts as well as those many (or less if not that many user alerts present) user alerts in the output. But due to the known API limitation, the results returned by the API for the asset and user alerts are not consistent with the provided page_size attribute in the API call.</li>
-              <li>Due to the above-mentioned API limitation, the number of asset alerts being returned (when the selected Alert Type is 'Asset Alerts' or 'All') and the number of user alerts being returned (when the selected Alert Type is 'User Alerts' or 'All') will be inconsistent with the Limit action parameter.</li>
+              <li>Due to the above-mentioned API limitation, the number of asset alerts being returned (when the selected Alert Type is 'Asset Alerts' or 'All') and the number of user alerts being returned (when the selected Alert Type is 'User Alerts' or 'All') will be inconsistent with the Limit action parameter, i.e., the user can receive less or more number of alerts than the specified limit.</li>
             </ul>
             <li><b>Example:</b>
               <ul>
@@ -1103,16 +1103,32 @@
       <h2>Error code caveats</h2>
       <ul>
         <li> <h4>Handling for HTTP 429 (RESOURCE_EXHAUSTED) Error </h4>
-          The Chronicle API enforces limits on the volume of requests that can be made by anyone against the Chronicle platform. If the user reaches or exceeds the query limit, the Chronicle API server returns HTTP 429 (RESOURCE_EXHAUSTED) to the caller. Hence, while executing the actions of the Chronicle Phantom integration, there were situations where the actions failed due to the above-mentioned API error. To handle this scenario, we have implemented the below-mentioned logic.
+          The Chronicle API enforces limits on the volume of requests that can be made by anyone against the Chronicle platform. If the user reaches or exceeds the query limit, the Chronicle API server returns HTTP 429 (RESOURCE_EXHAUSTED) to the caller. Hence, while executing the actions of the Chronicle Phantom integration, there were situations where the actions failed due to the above-mentioned API error. To handle this scenario, we have implemented the below-mentioned logic.<br>
           <ul>
-            <li>The action will execute as per the normal action flow.</li>
-            <li>If the Chronicle APIs return HTTP 429 (RESOURCE_EXHAUSTED) error, then, the retry API calls workflow will be executed. The retry workflow is governed by the 2 asset configuration parameters named “Retry Wait Period(in seconds)” and “Number Of Retries”. The explanation of both the parameters is provided below.
+            <li><b>Scenarios when the user may encounter this error</b>
               <ul>
-                <li>
-                  <b>Number of Retries: </b> The value of this parameter defines the number of attempts for which the action will keep on retrying if the Chronicle API continuously returns the HTTP 429 (RESOURCE_EXHAUSTED) error. If the error gets eliminated before the number of retries gets exhausted, then, the action execution will continue along its workflow with the next set of API calls and if the error is still persistent and all the number of retries are exhausted, then, the action will fail with the latest error message being displayed.
+                <li>This error can be encountered when the user wants to fetch a large number of data and the Chronicle instance also has a large volume of data for the provided parameters. The actions for which this error can be encountered are as follows:
+                  <ul>
+                    <li>List Events</li>
+                    <li>List Rules</li>
+                    <li>List Detections</li>
+                  </ul>
                 </li>
-                <li>
-                  <b>Retry Wait Period (in seconds): </b> The value of this parameter defines the waiting period in seconds for which to hold the current execution of the action on receiving the HTTP 429 (RESOURCE_EXHAUSTED) error and then, retry the same API call after the waiting period is exhausted. This ensures that the integration provides a mechanism of attempting to overcome the HTTP 429 (RESOURCE_EXHAUSTED) error.
+                <li>For all the other actions, if the user runs multiple actions, simultaneously, then this error can be encountered.</li>
+              </ul>
+            </li>
+            <li><b>Mitigation Strategy</b>
+              <ul>
+                <li>The action will execute as per the normal action flow.</li>
+                <li>If the Chronicle APIs return HTTP 429 (RESOURCE_EXHAUSTED) error, then, the retry API calls workflow will be executed. The retry workflow is governed by the 2 asset configuration parameters named “Retry Wait Period(in seconds)” and “Number Of Retries”. The explanation of both the parameters is provided below.
+                  <ul>
+                    <li>
+                      <b>Number of Retries: </b> The value of this parameter defines the number of attempts for which the action will keep on retrying if the Chronicle API continuously returns the HTTP 429 (RESOURCE_EXHAUSTED) error. If the error gets eliminated before the number of retries gets exhausted, then, the action execution will continue along its workflow with the next set of API calls and if the error is still persistent and all the number of retries are exhausted, then, the action will fail with the latest error message being displayed.
+                    </li>
+                    <li>
+                      <b>Retry Wait Period (in seconds): </b> The value of this parameter defines the waiting period in seconds for which to hold the current execution of the action on receiving the HTTP 429 (RESOURCE_EXHAUSTED) error and then, retry the same API call after the waiting period is exhausted. This ensures that the integration provides a mechanism of attempting to overcome the HTTP 429 (RESOURCE_EXHAUSTED) error. If the error persists, then the user should retry the action by providing a greater value to this parameter.
+                    </li>
+                  </ul>
                 </li>
               </ul>
             </li>
